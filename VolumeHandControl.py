@@ -1,11 +1,15 @@
 import cv2
 import numpy as np
 import time
+import VolumeControlModule as vcm
 import HandTrackingModule as hmd
+import math
 
 wCam, hCam = 640, 480
 
-detector = hmd.handDetector()
+detector = hmd.handDetector(detectionCon=.7)
+volControl = vcm.VolumeControl('mac')
+
 
 cap = cv2.VideoCapture(0)
 cap.set(3,wCam)
@@ -14,12 +18,30 @@ cap.set(4,hCam)
 prevTime = 0
 currTime = 0 
 
+volSlope = 100 / 175
+volInter = -volSlope * 25 
+
 while True:
+    
     success,img = cap.read()
-    
+    if not success:
+        continue
     detector.findHands(img)
-    detector.findPosition(img,[0,1,2])
-    
+    landmarks = detector.findPosition(img,[4,8]) #list with each landmark and the corresponding positions 
+    if landmarks:
+        thumb_x,thumb_y = landmarks[4][1],landmarks[4][2]
+        index_x,index_y = landmarks[8][1],landmarks[8][2]
+        cx,cy = (thumb_x+index_x)//2, (thumb_y+index_y)//2
+        cv2.line(img,(thumb_x,thumb_y),(index_x,index_y),(0,0,255),3)
+        cv2.circle(img,(cx,cy),10,(0,0,255),cv2.FILLED)
+        
+        length = math.hypot(index_x-thumb_x,index_y-thumb_y) 
+        #print(length)
+        length = np.clip(length,25,200)
+        #lets try 25-200 (hand range) to 0-100 (volume range)
+        vol = volSlope * length + volInter    # np.interp(length,[25,200],[0,100])
+        volControl.set_volume(vol)
+        #print(vol)
     currTime = time.time()
     fps = 1 / (currTime-prevTime)
     prevTime = currTime
