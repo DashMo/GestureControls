@@ -2,10 +2,17 @@ from tokenize import String
 import osascript
 
 class VolumeControl():
-    def __init__(self, os : String) -> None:
-        self.os = os
-        self.count = 0
-        self.loop = 10
+    def __init__(self, os : String, loop = 1) -> None:
+        """Can control/manage system volume 
+
+        Args:
+            os (String): 'mac' or 'win' for choosing operating system
+            loop (int, optional): Number of iterations before updating volume again (For opencv applications). Defaults to 1.
+        """
+        self.os = os # windows or mac
+        self.count = 0 # number of iterations since we last changed volume
+        self.loop = loop # number of iterations after which we should next change volume
+        
     def mac_set_volume(self,vol):
         osascript.osascript(f'set volume output volume {vol}')
         
@@ -20,6 +27,14 @@ class VolumeControl():
     
     
     def set_volume(self,vol):
+        """Wrapper to set volume based on operating system
+
+        Args:
+            vol (int): Should be in range 0-100
+
+        Returns:
+            int: 0 for success, -1 for failure
+        """
         if self.count == 0:
             print("setting volume to",vol)
             if self.os == 'mac':
